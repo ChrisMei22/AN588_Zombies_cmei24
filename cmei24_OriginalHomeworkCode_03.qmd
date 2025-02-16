@@ -1,0 +1,194 @@
+---
+title: "cmei24_OriginalHomeworkCode_03"
+author: "Christian Mei"
+format: html
+editor: visual
+---
+
+# **Some of my best friends are Zombies…**
+
+```{r}
+library(tidyverse)
+library(curl)
+```
+
+Load the zombie dataset **from** GitHub
+
+```{r}
+zombie_data <- curl(url = 'https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/refs/heads/master/AN588_Spring25/zombies.csv')
+
+zombie_data <- read_csv(zombie_data, col_names = TRUE)
+
+str(zombie_data)
+```
+
+```{r}
+head(zombie_data)
+```
+
+## Calculate the *population* mean and standard deviation for each quantitative random variable
+
+```{r}
+# Population variance function
+pop_v <- function(x) {
+    sum((x - mean(x))^2)/(length(x))
+}
+
+# Population sd function (square root of variance)
+pop_sd <- function(x) {
+    sqrt(pop_v(x))
+}
+```
+
+Use for loop to pick which columns we want to use
+
+```{r}
+
+for (column in colnames(zombie_data)){
+  col_values <- zombie_data[[column]] # extract the data from each column picked
+  if (column != "id" && is.numeric(col_values)){ # We only want values that are numeric but we also don't want to include ID
+    average <- mean(col_values)
+  variance <- pop_v(col_values)
+  s_dev <- pop_sd(col_values)
+  print(paste(column, " has a mean of ", average, " a population variance of ", variance, " and a standard deviation of ", s_dev))
+  print("------------------------------------------------------------------------------")
+  }
+}
+```
+
+## Use {ggplot} to make boxplots of each of these variables by gender.
+
+```{r}
+for (column in colnames(zombie_data)){
+  col_values <- zombie_data[[column]]
+  if (column != "id" && is.numeric(col_values)){
+    print(
+      ggplot(zombie_data, aes(x = as.factor(gender), y = col_values, fill = as.factor(gender))) +
+  geom_boxplot() + 
+  labs(y = column, x = "Gender", fill = "Gender")
+    ) +
+      theme_classic()
+  }
+}
+
+```
+
+## Use {ggplot} to make scatterplots of height and weight in relation to age. Do these variables seem to be related? In what way?
+
+Height vs. Age
+
+```{r}
+ggplot(zombie_data, aes(x = age, y = height)) + 
+  geom_point(color = "red") +
+  geom_smooth(method = "lm", color = "black", se = TRUE) +
+  labs(x = "Age", y = "Height") + 
+  theme_minimal()
+```
+
+```{r}
+cor(x = zombie_data$age, y = zombie_data$height, method = "spearman")
+```
+
+Weight vs. Age
+
+```{r}
+ggplot(zombie_data, aes(x = age, y = weight)) + 
+  geom_point(color = "darkred") +
+  geom_smooth(method = "lm", color = "black", se = TRUE) +
+  labs(x = "Age", y = "Weight") + 
+  theme_minimal()
+```
+
+```{r}
+cor(x = zombie_data$age, y = zombie_data$weight, method = "spearman")
+```
+
+## Using histograms and Q-Q plots, check whether the quantitative variables seem to be drawn from a normal distribution. Which seem to be and which do not
+
+```{r}
+
+par(mfrow = c(2, 3)) # Using this to show multiple figures c(rows, columns)
+for (column in colnames(zombie_data)){
+  col_values <- zombie_data[[column]]
+  if (column != "id" && is.numeric(col_values)){
+    qqnorm(col_values, main = paste("Normal QQ plot ", column))
+    qqline(col_values, col = "red")
+  }
+}
+
+par(mfrow = c(1, 1)) # Reset it so the next figures don't have the same configuration
+```
+
+```{r}
+
+par(mfrow = c(2, 3))
+for (column in colnames(zombie_data)){
+  col_values <- zombie_data[[column]]
+  if (column != "id" && is.numeric(col_values)){
+    print(
+      ggplot(zombie_data, aes(x = col_values)) +
+        geom_histogram(color = "black", fill = "lightblue") + 
+        labs(y = "Frequency", x = column)) + 
+        theme_minimal()
+  }
+}
+
+
+
+```
+
+Discrete (zombies_killed, and years_of_education) values rather than continuous
+
+## Now use the sample() function to sample ONE subset of 30 zombie survivors (without replacement) from this population and calculate the mean and sample standard deviation for each variable.
+
+```{r}
+set.seed(1)
+sample_rows <- sample(nrow(zombie_data), 30)
+zombie_data_sample <- zombie_data[sample_rows,]
+zombie_data_sample
+```
+
+```{r}
+# Standard Error
+SE <- function(x) {
+    sqrt(var(x)/length(x))
+}
+
+# Confidnce Interval
+normalCI = function(x, CIlevel = 0.95) {
+    upper = mean(x) + qnorm(1 - (1 - CIlevel)/2) * sqrt(var(x)/length(x))
+    lower = mean(x) + qnorm((1 - CIlevel)/2) * sqrt(var(x)/length(x))
+    ci <- c(lower, upper)
+    return(ci)
+}
+```
+
+```{r}
+for (column in colnames(zombie_data_sample)){
+  col_values <- zombie_data_sample[[column]] # extract the data from each column picked
+  if (column != "id" && is.numeric(col_values)){ # We only want values that are numeric but we also don't want to include ID
+    average <- mean(col_values)
+    variance <- var(col_values) # we can use var() now because its a sample
+    s_dev <- sd(col_values) # we can use sd() now because its a sample
+    s_error <- SE(col_values)
+    print(paste(column, " has a mean of ", average, " a population variance of ", variance, " a standard deviation of ", s_dev, " and a standard error of ", s_error))
+    if(column != 'zombies_killed' && column != 'years_of_education'){
+      confidence_interval <- normalCI(col_values)
+      print(paste("Lower lvl confidence intervals for", column, "is:", confidence_interval[1]))
+      print(paste("Upper lvl confidence intervals for", column, "is:", confidence_interval[2]))
+    }
+    print("------------------------------------------------------------------------------")
+  }
+}
+```
+
+Bootstrapping
+
+```{r}
+zombie_means <- mean(zombie_data_sample)
+n <- 30
+for (i in 2:99) {
+    zombie_means[i] <- mean(sample(zombie_data, n, replace = TRUE))
+    # Cannot take a sample larger than the population when 'replace = FALSE'
+}
+```
