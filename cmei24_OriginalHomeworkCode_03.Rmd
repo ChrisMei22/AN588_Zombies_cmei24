@@ -3,7 +3,7 @@ title: "cmei24_OriginalHomeworkCode_03"
 author: "Christian Mei"
 output: 
   rmdformats::readthedown:
-    toc: true
+    toc: 3
     number_sections: true
     highlight: tango
 editor: visual
