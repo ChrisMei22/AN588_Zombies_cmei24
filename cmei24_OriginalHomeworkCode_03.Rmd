@@ -11,6 +11,8 @@ editor: visual
 
 # **Some of my best friends are Zombies…**
 
+![](images/clipboard-1007614155.png)
+
 ```{r}
 library(tidyverse)
 library(curl)
