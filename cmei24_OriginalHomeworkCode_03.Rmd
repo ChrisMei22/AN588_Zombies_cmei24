@@ -328,7 +328,7 @@ means_of_means <- final_table %>%
 means_of_means
 ```
 
-## How do the standard deviations of means compare to the standard errors estimated in $$5$$?
+## How do the standard deviations of means compare to the standard errors estimated in [5]?
 
 To calculate standard deviation:
 
