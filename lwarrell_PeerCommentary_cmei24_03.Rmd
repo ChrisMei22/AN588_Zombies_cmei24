@@ -1,0 +1,395 @@
+---
+title: "cmei24_OriginalHomeworkCode_03"
+author: "Christian Mei"
+output: 
+  rmdformats::readthedown:
+    toc: 3
+    number_sections: true
+    highlight: tango
+editor: visual
+---
+
+# **Some of my best friends are Zombies…**
+
+![](images/clipboard-1007614155.png)
+```{r}
+#LW: starting all peer comments with LW so they're easy to find!
+library(tidyverse)
+library(curl)
+```
+
+Load the zombie dataset **from** GitHub
+
+```{r}
+zombie_data <- curl(url = 'https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/refs/heads/master/AN588_Spring25/zombies.csv')
+
+zombie_data <- read_csv(zombie_data, col_names = TRUE) # We want to keep the same name of columns from the original database
+
+str(zombie_data) # To see the variable class each column will be
+#LW: I really like how everything is nicely commentated! It really shows your thought process while writing code
+```
+
+Let's take a look at how the raw data looks!
+
+```{r}
+head(zombie_data)
+```
+
+## Calculate the *population* mean and standard deviation for each quantitative random variable
+
+Let's load the population variance and standard deviation that we got from class!
+
+```{r}
+# Population variance function
+pop_v <- function(x) {
+    sum((x - mean(x))^2)/(length(x))
+}
+
+# Population sd function (square root of variance)
+pop_sd <- function(x) {
+    sqrt(pop_v(x))
+}
+```
+
+Use for loop to pick which columns we want to use and apply the functions to get the mean, standard deviation!
+
+```{r}
+
+for (column in colnames(zombie_data)){
+  col_values <- zombie_data[[column]] # extract the data from each column picked
+  if (column != "id" && is.numeric(col_values)){ # We only want values that are numeric but we also don't want to include ID
+    average <- mean(col_values)
+  variance <- pop_v(col_values)
+  s_dev <- pop_sd(col_values)
+  print(paste(column, " has a mean of ", average, " a population variance of ", variance, " and a standard deviation of ", s_dev))
+  print("------------------------------------------------------------------------------")
+  }
+}
+#LW: ok this for loop is really good! I have no notes :)
+```
+
+## Use {ggplot} to make boxplots of each of these variables by gender.
+
+```{r}
+for (column in colnames(zombie_data)){
+  col_values <- zombie_data[[column]]
+  if (column != "id" && is.numeric(col_values)){ # Again, we only want values that are numeric but we also don't want to include ID
+    print(
+      ggplot(zombie_data, aes(x = as.factor(gender), y = col_values, fill = as.factor(gender))) + # fill = gender will help us assign different colors according to the gender factors
+  geom_boxplot() + 
+  labs(y = column, x = "Gender", fill = "Gender")
+    ) +
+      theme_classic()
+  }
+}
+#LW: Again this for loop is pretty cool! Overall the code looks good! 
+```
+
+## Use {ggplot} to make scatterplots of height and weight in relation to age. Do these variables seem to be related? In what way?
+
+First leet's do **Height vs. Age**:
+
+```{r}
+ggplot(zombie_data, aes(x = age, y = height)) + 
+  geom_point(color = "red") + # We use geom_point to create a scatterplot
+  geom_smooth(method = "lm", color = "black", se = TRUE) + # We can use this line to add a line of best fit to better see the relationship and if the dots fit it!
+  labs(x = "Age", y = "Height") + 
+  theme_minimal()
+#LW:This is nitpicky and a personal preference but I would use a color different than the default red bc it's a little harsh and doesn't look the greatest (firebrick looks a lot better to me) but overall very cool :)
+ggplot(zombie_data, aes(x = age, y = height)) + 
+  geom_point(color = "firebrick3") + # We use geom_point to create a scatterplot
+  geom_smooth(method = "lm", color = "black", se = TRUE) + # We can use this line to add a line of best fit to better see the relationship and if the dots fit it!
+  labs(x = "Age", y = "Height") + 
+  theme_minimal()
+```
+
+Additionally, we can test how correlated these two variables are by using a correlation test!
+
+```{r}
+# Since these are continuous values and we assume that they follow a normal distribution...
+# (We know they follow a normal distribution from the histograms below)
+# ... We will use a Pearson correlation to see how correlated they are! 
+cor(x = zombie_data$age, y = zombie_data$height, method = "pearson")
+```
+
+The relationship between two variables is generally considered strong when their correlation coefficient value is larger than 0.7
+
+**Weight vs. Age**
+
+```{r}
+ggplot(zombie_data, aes(x = age, y = weight)) + 
+  geom_point(color = "darkred") +
+  geom_smooth(method = "lm", color = "black", se = TRUE) + # Here we do the same!
+  labs(x = "Age", y = "Weight") + 
+  theme_minimal()
+#LW: Again this looks good! I think the darkred looks a lot better :)
+```
+
+Let's calculate how strong this correlation is!
+
+```{r}
+cor(x = zombie_data$age, y = zombie_data$weight, method = "pearson")
+```
+
+It is pretty weak! The correlation coefficient is much lower than 0.5
+
+## Using histograms and Q-Q plots, check whether the quantitative variables seem to be drawn from a normal distribution. Which seem to be and which do not
+
+```{r}
+
+par(mfrow = c(2, 3)) # Using this to show multiple figures c(rows, columns)
+
+for (column in colnames(zombie_data)){ # Let's re-use the for loop used above!
+  col_values <- zombie_data[[column]]
+  if (column != "id" && is.numeric(col_values)){
+    qqnorm(col_values, main = paste("Normal QQ plot ", column))
+    qqline(col_values, col = "red") # To make the Q-Q plot more readable, we'll add a qqline.
+  }
+}
+
+par(mfrow = c(1, 1)) # Reset it so the next figures don't have the same configuration
+#LW: Again this code looks really good! No complaints from me at all! Red looks a lot better here since it's directly over the black :)
+```
+
+For all numerical columns except for zombies_killed and years_of_education, we can see that most plots lie on the Q-Q line. This means that they are normally distributed. The other two columns look strange! Let's use a histogram to see what is up with them!
+
+```{r}
+# Use for loop again and use ggplot to create a histogram to display value distribution
+
+for (column in colnames(zombie_data)){
+  col_values <- zombie_data[[column]]
+  if (column != "id" && is.numeric(col_values)){
+    print(
+      ggplot(zombie_data, aes(x = col_values)) +
+        geom_histogram(color = "black", fill = "lightblue") + 
+        labs(y = "Frequency", x = column)) + 
+        theme_minimal()
+  }
+}
+
+
+#LW: I feel like a broken record... This looks very good :)
+```
+
+The gaps that we see in zombies_killed and years_of_education are due to the minimum bins used by ggplot, for subsequent histograms, we can decrease this to only 10 bins. Still the distribution appears to skew to the left. Additionally, we know that zombies_killed and years_of_education are discrete values and not continuous. Count data like this and knowing that the distribution is skewed to the left, tells me that they could belong to a Poisson distribution. Let's test this out!
+
+```{r}
+# First create a random set of values that belong to a Poisson distribution
+test_poisson_kills <- rpois(n = length(zombie_data$zombies_killed), lambda = mean(zombie_data$zombies_killed))
+# The parameters are: same number of samples in our original dataset, and a lambda based on the mean of our original column value
+
+par(mfrow = c(1,2)) # Create layout that has 1 row with 2 columns
+
+#Plot histogram of original distribution
+hist(zombie_data$zombies_killed, breaks = 10, col = "lightblue", main = "Observed Zombie Kills", xlab = "Zombie Kills")
+
+# Plot histogram of Poisson proxy distribution
+hist(test_poisson_kills, breaks = 10, col = "pink", main = "Poisson Fit Zombie Kills", xlab = " Predicted Zombie Kills")
+```
+
+Having them side by side tells us that zombie_kills is indeed following a Poisson distribution!
+
+```{r}
+# We'll do the same for years_of_education!
+test_poisson_education <- rpois(n = length(zombie_data$years_of_education), lambda = mean(zombie_data$years_of_education))
+
+par(mfrow = c(1,2))
+
+#Plot histogram of original distribution
+hist(zombie_data$years_of_education, breaks = 10, col = "lightblue", main = "Observed Education Years", xlab = "Observed Years of Education")
+
+# Plot histogram of Poisson proxy distribution
+hist(test_poisson_education, breaks = 10, col = "pink", main = "Poisson Fit Education Years", xlab = " Predicted Years of Education")
+
+par(mfrow = c(1,1)) # Return to normal paneling = 1 row, 1 column
+#LW: Again this whole section is very well done... I did not do this in my homework at all
+```
+
+## Now use the sample() function to sample ONE subset of 30 zombie survivors (without replacement) from this population and calculate the mean and sample standard deviation for each variable.
+
+```{r}
+set.seed(1)
+sample_rows <- sample(nrow(zombie_data), 30) # First get a random index of the rows available
+zombie_data_sample <- zombie_data[sample_rows,] # Use the sample_row as an index to get all the rows associated  with the number in the original zombie_data
+zombie_data_sample
+```
+
+## Estimate the standard error for each variable, and construct the 95% confidence interval for each mean.
+
+Let's load the necessary functions to calculate the Standard Error, and confidence intervals. Since we found out that zombies_killed and years_of_education follow an Poisson distribution, we need to calculate a confidence interval based on this distribution.
+
+```{r}
+# Standard Error
+SE <- function(x) {
+    sqrt(var(x)/length(x))
+}
+
+# Confidnce Interval based on Normal/Gaussian distribution
+normalCI = function(x, CIlevel = 0.95) {
+    upper = mean(x) + qnorm(1 - (1 - CIlevel)/2) * sqrt(var(x)/length(x))
+    lower = mean(x) + qnorm((1 - CIlevel)/2) * sqrt(var(x)/length(x))
+    ci <- c(lower, upper)
+    return(ci)
+}
+
+# Poisson Confidence Interval (had to google this)
+
+poisson_CI <- function(counts, conf_level = 0.95) {
+  lambda_hat <- mean(counts)  # Estimate of lambda
+  alpha <- 1 - conf_level
+  
+  # Compute confidence interval using Chi-Square
+  lower_CI <- qchisq(alpha / 2, 2 * lambda_hat) / 2
+  upper_CI <- qchisq(1 - alpha / 2, 2 * (lambda_hat + 1)) / 2
+  
+  return(c(lower_CI, upper_CI))
+}
+```
+
+```{r}
+for (column in colnames(zombie_data_sample)){
+  col_values <- zombie_data_sample[[column]] # extract the data from each column picked
+  if (column != "id" && is.numeric(col_values)){ # We only want values that are numeric but we also don't want to include ID
+    
+    average <- mean(col_values)
+    variance <- var(col_values) # we can use var() now because its a sample
+    s_dev <- sd(col_values) # we can use sd() now because its a sample
+    s_error <- SE(col_values)
+    
+    print(paste(column, " has a mean of ", average, " a population variance of ", variance, " a standard deviation of ", s_dev, " and a standard error of ", s_error))
+    
+    # When it comes to CI, we want to pick which CI function to use according to column identity
+    # If columns are normally distributed:
+    if(column != 'zombies_killed' && column != 'years_of_education'){
+      confidence_interval <- normalCI(col_values)
+      print(paste("Lower lvl confidence intervals for", column, "is:", confidence_interval[1]))
+      print(paste("Upper lvl confidence intervals for", column, "is:", confidence_interval[2]))
+    }
+    
+    # If columns are Poisson distributed:
+    if (column == 'zombies_killed' | column == 'years of education'){
+      confidence_interval <- poisson_CI(col_values)
+      print(paste("Lower lvl confidence intervals for", column, "is:", confidence_interval[1]))
+      print(paste("Upper lvl confidence intervals for", column, "is:", confidence_interval[2]))
+    }
+    
+    print("------------------------------------------------------------------------------")
+  }
+}
+```
+
+## Now draw 99 more random samples of 30 zombie apocalypse survivors, and calculate the mean for each variable for each of these samples.
+
+First create function that will extract all the necessary information:
+
+```{r}
+get_means <- function(sample_data){
+  average <- NULL
+  sample_avg_columns <- NULL
+  for (column in colnames(sample_data)){
+  col_values <- sample_data[[column]] # extract the data from each column picked
+  if (column != "id" && is.numeric(col_values)){ # We only want values that are numeric but we also don't want to include ID
+    average <- c(average, mean(col_values)) # Append the new mean values to the list
+    sample_avg_columns <- c(sample_avg_columns, column) # Create a list of the column names
+  }
+  }
+  means_table <- data.frame( # Using the data above, we can create a new data frame
+    column_name = sample_avg_columns, # Where column names are the ones we collected above
+    mean_value = average, # Where values are the ones collected before
+    stringsAsFactors = FALSE
+    
+    # This table is in long format meaning that the final column names that we want are actually the values in the column_name column
+  )
+  
+  # To visualize this better, we turn these values into columns using the pivot_wider() function in dplyr
+  means_table <- means_table %>% pivot_wider(
+    names_from = column_name, # We create new columns based on the values under column_name
+    values_from = mean_value # We assign to these new columns their respective values from the mean_value column
+  )
+}
+```
+
+Now that we have the function created let's apply that to all 99 sampling events!
+
+```{r}
+
+set.seed(1)
+final_table <- get_means(zombie_data_sample) # We start our final table with the first sampling event we had!
+for (i in 1:99){ # We create a loop for sampling 99 times
+  sample_rows <- zombie_data[sample(nrow(zombie_data), 30, replace = TRUE),] # We simplify the sampling step we did for our initial sampling into a single line
+  sampled_means <- get_means(sample_rows) # Apply the get_means() function to this new sample
+  final_table <- rbind(final_table, sampled_means) # Append the means onto the final table
+}
+
+head(final_table)
+```
+
+## What are the means and standard deviations of this distribution of means for each variable?
+
+To calculate means:
+
+```{r}
+means_of_means <- final_table %>% 
+  summarise( # Use summarise to create a separate table for easier visualization
+    mean_heights = mean(height),
+    mean_weight = mean(weight),
+    mean_kills = mean(zombies_killed),
+    mean_education = mean(years_of_education),
+    mean_age = mean(age)
+  )
+
+means_of_means
+```
+
+## How do the standard deviations of means compare to the standard errors estimated in [5]?
+
+To calculate standard deviation:
+
+```{r}
+sd_of_means <- final_table %>%
+  summarise( # Use summarise to create a separate table for easier visualization
+    sd_heights = sd(height), # Assuming these are samples and not a population!
+    sd_weight = sd(weight),
+    sd_kills = sd(zombies_killed),
+    sd_education = sd(years_of_education),
+    sd_age = sd(age)
+  )
+
+sd_of_means
+```
+
+These standard deviations are closer to the SE calculated before
+
+## What do these sampling distributions look like (a graph might help here)? Are they normally distributed? What about for those variables that you concluded were not originally drawn from a normal distribution?
+
+```{r}
+# Final Q-Q plot check 
+par(mfrow = c(2, 3)) # Using this to show multiple figures c(rows, columns)
+for (column in colnames(final_table)){
+  col_values <- final_table[[column]]
+  qqnorm(col_values, main = paste("Normal QQ plot ", column))
+  qqline(col_values, col = "red")
+}
+
+par(mfrow = c(1, 1)) # Reset it so the next figures don't have the same configuration
+```
+
+```{r}
+# Let's run the same for loop code used for histogram creation but this time on the means table (final_table)
+
+for (column in colnames(final_table)){
+  col_values <- final_table[[column]]
+  if (column != "id" && is.numeric(col_values)){
+    print(
+      ggplot(final_table, aes(x = col_values)) +
+        geom_histogram(color = "black", fill = "lightblue") + 
+        labs(y = "Frequency", x = column)) + 
+        theme_minimal()
+  }
+}
+
+```
+
+All columns look more normally distributed now! This means corroborates the Central Limit Theorem: sampling distribution of the mean will always be normally distributed, as long as the sample size is large enough
+
+LW: Overall I have very few things to say about this! You did a very good job and your code looks almost perfect! Your use of for loops and graphs look really good! 
