@@ -12,6 +12,7 @@ editor: visual
 # **Some of my best friends are Zombies…**
 
 ![](images/clipboard-1007614155.png)
+
 ```{r}
 #LW: starting all peer comments with LW so they're easy to find!
 library(tidyverse)
@@ -392,4 +393,4 @@ for (column in colnames(final_table)){
 
 All columns look more normally distributed now! This means corroborates the Central Limit Theorem: sampling distribution of the mean will always be normally distributed, as long as the sample size is large enough
 
-LW: Overall I have very few things to say about this! You did a very good job and your code looks almost perfect! Your use of for loops and graphs look really good! 
+LW: Overall I have very few things to say about this! You did a very good job and your code looks almost perfect! Your use of for loops and graphs look really good!
