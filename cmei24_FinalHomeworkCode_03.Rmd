@@ -85,11 +85,11 @@ for (column in colnames(zombie_data)){
 
 ## Use {ggplot} to make scatterplots of height and weight in relation to age. Do these variables seem to be related? In what way?
 
-First leet's do **Height vs. Age**:
+First let's do **Height vs. Age**:
 
 ```{r}
 ggplot(zombie_data, aes(x = age, y = height)) + 
-  geom_point(color = "red") + # We use geom_point to create a scatterplot
+  geom_point(color = "darkorange") + # We use geom_point to create a scatterplot
   geom_smooth(method = "lm", color = "black", se = TRUE) + # We can use this line to add a line of best fit to better see the relationship and if the dots fit it!
   labs(x = "Age", y = "Height") + 
   theme_minimal()
